@@ -7,7 +7,7 @@
 <style>
 :root{
   --bg:#0d1016;--card:#171c25;--card2:#11161e;--line:#2a3342;--text:#f5f7fb;
-  --muted:#94a0b2;--blue:#4f8cff;--red:#ff4b3e;--green:#54e38e;--yellow:#ffd84d;
+  --muted:#94a0b2;--blue:#4f8cff;--red:#ff4b3e;--green:#54e38e;--yellow:#fff36a;
   --orange:#f59a36;--cyan:#50b8d8;
 }
 *{box-sizing:border-box}
@@ -23,7 +23,6 @@ label{display:block;color:var(--muted);font-size:12px;margin:0 0 6px}
 select,input{width:100%;background:#11161e;color:var(--text);border:1px solid var(--line);border-radius:12px;padding:12px;font-size:16px}
 button{border:0;border-radius:14px;padding:13px 15px;font-weight:800;font-size:15px;cursor:pointer}
 .primary{background:var(--blue);color:#fff}.secondary{background:#252d39;color:#fff;border:1px solid var(--line)}
-.smallbtn{padding:9px 11px;font-size:13px;min-width:auto}
 .row{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}.row button{flex:1;min-width:130px}
 .modebar{display:flex;align-items:center;justify-content:space-between;gap:10px;background:#11161e;border:1px solid var(--line);border-radius:14px;padding:12px 13px;margin-top:14px}
 .modebar b{font-size:14px}.modebar small{display:block;color:var(--muted);font-size:11px;margin-top:2px}
@@ -33,18 +32,24 @@ button{border:0;border-radius:14px;padding:13px 15px;font-weight:800;font-size:1
 .hero{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 @media(min-width:700px){.hero{grid-template-columns:repeat(4,1fr)}}
 .stat{background:#11161e;border:1px solid var(--line);border-radius:14px;padding:12px}.k{font-size:11px;color:var(--muted)}.v{font-weight:900;font-size:22px;margin-top:4px}
+.rateLine{font-size:11px;color:var(--muted);margin-top:3px}
 .graph{width:100%;height:310px;background:#07090d;border:1px solid #333c48;border-radius:14px;overflow:hidden;position:relative}
 svg{width:100%;height:100%;display:block}.axis{stroke:#758092;stroke-width:1;stroke-dasharray:5 6}.zero{stroke:#cfd5df;stroke-width:1.4;stroke-dasharray:5 5}.plot{fill:none;stroke:var(--orange);stroke-width:4;stroke-linejoin:round;stroke-linecap:round}
 .glabel{fill:#9ca8b8;font-size:11px}
-.history{display:grid;grid-template-columns:repeat(auto-fit,minmax(60px,1fr));gap:5px;margin-top:8px}
-.hit{background:#11161e;border:1px solid var(--line);border-radius:10px;overflow:hidden;text-align:center}.hit .n{padding:8px 4px 6px;font-size:14px}.hit .t{padding:5px;font-weight:800;font-size:12px}.hit.bb .t{background:var(--red)}.hit.reg .t{background:#456cf0}
-.chain{margin-top:10px;display:flex;flex-wrap:wrap;gap:7px}.chain span{background:rgba(80,184,216,.18);border:1px solid rgba(80,184,216,.4);color:#82d6ef;padding:5px 9px;border-radius:999px;font-size:12px;font-weight:800}
 .alpha{display:none}.alpha.show{display:block}.alpha-head{display:flex;justify-content:space-between;align-items:center;gap:8px}
 .rank{font-size:32px;font-weight:950}.p4{font-size:24px;font-weight:900}
 .bar{height:11px;border-radius:99px;background:#252d38;overflow:hidden;margin:10px 0}.bar>div{height:100%;background:linear-gradient(90deg,#4f8cff,#54e38e);width:0}
-.probs{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}@media(min-width:700px){.probs{grid-template-columns:repeat(6,1fr)}}
-.prob{background:#11161e;border:1px solid var(--line);border-radius:10px;padding:7px 5px;text-align:center}.prob b{display:block;font-size:13px;line-height:1.15}.prob small{color:var(--muted);font-size:10px}
-.guess{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}.guess button{width:100%;min-width:0;background:#222a35;color:white;border:1px solid var(--line);padding:13px 6px}
+.probs{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+@media(min-width:700px){.probs{grid-template-columns:repeat(6,1fr)}}
+.prob{
+  background:#11161e;border:1px solid var(--line);border-radius:9px;
+  height:54px;padding:0;text-align:center;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+}
+.prob b{display:block;font-size:13px;line-height:1.05;margin-top:2px}
+.prob small{color:var(--muted);font-size:9px;line-height:1.05}
+.guess{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}
+.guess button{width:100%;min-width:0;background:#222a35;color:white;border:1px solid var(--line);padding:13px 6px}
 .guess button.sel{background:var(--blue);border-color:#76a2ff}
 .reveal{display:none;margin-top:12px;padding:14px;border-radius:14px;background:#11161e;border:1px solid var(--line)}.reveal.show{display:block}
 .correct{color:var(--green)}.wrong{color:#ff7f75}.empty{color:var(--muted);text-align:center;padding:18px}
@@ -54,19 +59,18 @@ svg{width:100%;height:100%;display:block}.axis{stroke:#758092;stroke-width:1;str
 .timeline{display:flex;gap:8px;overflow-x:auto;padding-bottom:3px}.step{min-width:94px;background:#11161e;border:1px solid var(--line);border-radius:12px;padding:10px;text-align:center}.step .g{font-size:12px;color:var(--muted)}.step .guessv{font-weight:900;margin-top:4px}
 .modeTabs{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}.modeTabs button{background:#222a35;color:#fff;border:1px solid var(--line)}.modeTabs button.active{background:var(--blue)}
 
+/* ツブ表示 */
 .grainWrap{overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:6px}
-.grainChart{display:flex;gap:4px;align-items:flex-end;min-width:max-content;padding:28px 4px 0;position:relative}
+.grainChart{display:flex;gap:4px;align-items:flex-end;min-width:max-content;padding:46px 4px 0;position:relative}
 .grainCol{width:54px;flex:0 0 54px;text-align:center;position:relative}
-.grainStack{height:210px;display:flex;flex-direction:column-reverse;justify-content:flex-start;gap:2px;align-items:stretch}
+.grainStack{height:228px;display:flex;flex-direction:column-reverse;justify-content:flex-start;gap:2px;align-items:stretch}
 .grainBlock{height:18px;border-radius:2px}
-.grainBlue{background:#4266e8}.grainYellow{background:#fff44f}.grainGreen{background:#69ef45}
+.grainBlue{background:#4266e8}.grainYellow{background:#fff36a}.grainGreen{background:#69ef45}.grainRed{background:#ff4f4f}
 .grainMeta{margin-top:5px;font-size:11px;line-height:1.2;color:var(--muted)}
 .grainType{font-size:11px;font-weight:900;margin-top:3px;padding:4px 2px;border-radius:4px}
-.grainType.bb{background:var(--red);color:white}.grainType.reg{background:#456cf0;color:white}
-.chainLane{position:absolute;left:4px;right:4px;top:2px;height:22px;pointer-events:none}
-.chainBand{position:absolute;height:18px;border-radius:5px;background:rgba(80,184,216,.7);color:white;font-size:11px;font-weight:900;line-height:18px;text-align:center;white-space:nowrap;overflow:hidden}
-.rateLine{font-size:11px;color:var(--muted);margin-top:2px}
-
+.grainType.bb{background:var(--red);color:white}.grainType.reg{background:#456cf0;color:white}.grainType.end{background:#9b3b44;color:white}
+.chainLane{position:absolute;left:4px;right:4px;height:22px;pointer-events:none}
+.chainBand{position:absolute;height:18px;border-radius:5px;background:rgba(80,184,216,.76);color:white;font-size:11px;font-weight:900;line-height:18px;text-align:center;white-space:nowrap;overflow:hidden}
 </style>
 </head>
 <body>
@@ -172,21 +176,42 @@ function snapshotAt(c,g){
   const hits=c.hits.filter(h=>h.g<=g), bb=hits.filter(h=>h.type==='BB').length, reg=hits.filter(h=>h.type==='REG').length;
   let pts=c.pts.filter(p=>p[0]<=g);
   if(!pts.length||pts[pts.length-1][0]!==g){
-    const last=pts[pts.length-1]||[0,0], nextHit=c.hits.find(h=>h.g>g);
+    const last=pts[pts.length-1]||[0,0];
     let diff=last[1]-(g-last[0])*1.15;
     pts=[...pts,[g,diff]];
   }
   const a=alphaPosterior(c.machine,g,bb,reg);
   return {target:g,hits,bb,reg,pts,alpha:a,diff:Math.round(pts[pts.length-1][1])};
 }
-function calcChains(hits){
-  let arr=[],chain=0;
-  for(const h of hits){
-    if(h.gap<=100){chain++;}else{if(chain>=2)arr.push(chain);chain=1}
+
+/* 100G単位の積み木。色は「段階的に積む」 */
+function buildNormalBlocks(gap){
+  const blocks=Math.max(1,Math.ceil(gap/100));
+  let out='';
+  for(let i=1;i<=blocks;i++){
+    let cls='grainBlue';
+    if(i>=6) cls='grainGreen';
+    else if(i>=4) cls='grainYellow';
+    out+=`<div class="grainBlock ${cls}"></div>`;
   }
-  if(chain>=2)arr.push(chain);
-  return arr;
+  return out;
 }
+
+/* 終了時の未当選G：通常配色で積み、最上段だけ赤 */
+function buildEndBlocks(gap){
+  if(gap<=0) return '';
+  const blocks=Math.max(1,Math.ceil(gap/100));
+  let out='';
+  for(let i=1;i<=blocks;i++){
+    let cls='grainBlue';
+    if(i>=6) cls='grainGreen';
+    else if(i>=4) cls='grainYellow';
+    if(i===blocks) cls='grainRed';
+    out+=`<div class="grainBlock ${cls}"></div>`;
+  }
+  return out;
+}
+
 function graphSVG(pts,target){
   const vals=pts.map(x=>x[1]), ymin=Math.min(-500,Math.floor(Math.min(...vals)/500)*500), ymax=Math.max(500,Math.ceil(Math.max(...vals)/500)*500);
   const W=760,H=300,padL=52,padR=16,padT=16,padB=30, iw=W-padL-padR,ih=H-padT-padB;
@@ -232,22 +257,36 @@ function showFinalReveal(){
 function render(){
   const snap=snapshotAt(current,playMode==='progress'?progressG:current.target);
   const a=snap.alpha,total=snap.bb+snap.reg,comb=total?snap.target/total:0;
+
+  /* ===== ツブ表示データ =====
+     左が新しい。
+     まず終了時の未当選Gを最左列に追加し、その右へ当選履歴を新しい順で並べる。
+  */
   const recentHits=snap.hits.slice(-20);
-  const viewHits=[...recentHits].reverse(); // 左が新しい・右が古い
-  const grainCols=viewHits.map((h)=>{
-    const blocks=Math.max(1,Math.ceil(h.gap/100));
-    let cls='grainBlue';
-    if(h.gap>=600) cls='grainGreen';
-    else if(h.gap>=400) cls='grainYellow';
-    const stack=Array.from({length:blocks},()=>`<div class="grainBlock ${cls}"></div>`).join('');
+  const lastHitG=snap.hits.length?snap.hits[snap.hits.length-1].g:0;
+  const tailG=Math.max(0,snap.target-lastHitG);
+
+  const displayItems=[];
+  if(tailG>0){
+    displayItems.push({kind:'end',gap:tailG,type:'終了'});
+  }
+  [...recentHits].reverse().forEach(h=>displayItems.push({kind:'hit',...h}));
+
+  const grainCols=displayItems.map(item=>{
+    const stack=item.kind==='end'?buildEndBlocks(item.gap):buildNormalBlocks(item.gap);
+    const typeClass=item.kind==='end'?'end':item.type.toLowerCase();
+    const label=item.kind==='end'?'終了':item.type;
     return `<div class="grainCol">
       <div class="grainStack">${stack}</div>
-      <div class="grainMeta">${h.gap}G</div>
-      <div class="grainType ${h.type.toLowerCase()}">${h.type}</div>
+      <div class="grainMeta">${item.gap}G</div>
+      <div class="grainType ${typeClass}">${label}</div>
     </div>`;
-  }).join('') || '<div class="empty">当選なし</div>';
+  }).join('') || '<div class="empty">履歴なし</div>';
 
-  // 連チャン帯：元の時系列で100G以内が続く区間を抽出し、表示中20件へ変換
+  /* ジャグ連帯。
+     1000G以上の大ハマりが表示中にある場合だけ上寄せ。
+     それ以外は従来よりツブ1個分（約18px）下げる。
+  */
   const chainRanges=[];
   let start=null;
   for(let i=0;i<snap.hits.length;i++){
@@ -262,19 +301,23 @@ function render(){
   if(start!==null && snap.hits.length-start>=2) chainRanges.push([start,snap.hits.length-1]);
 
   const globalStart=snap.hits.length-recentHits.length;
+  const endOffset=tailG>0?1:0; // 終了列が左端に1本入る分
   const visibleBands=[];
   for(const [s,e] of chainRanges){
     const vs=Math.max(s,globalStart), ve=Math.min(e,snap.hits.length-1);
     if(vs<=ve && ve-vs+1>=2){
-      // reversed display: newest at left
-      const leftIndex=(snap.hits.length-1)-ve;
-      const rightIndex=(snap.hits.length-1)-vs;
+      const leftIndex=endOffset+(snap.hits.length-1-ve);
+      const rightIndex=endOffset+(snap.hits.length-1-vs);
       const count=rightIndex-leftIndex+1;
       visibleBands.push({left:leftIndex*58,width:count*58-4,count});
     }
   }
   const chainBands=visibleBands.map(b=>`<div class="chainBand" style="left:${b.left}px;width:${b.width}px">${b.count}連</div>`).join('');
+  const hasHugeGap=displayItems.some(x=>x.gap>=1000);
+  const chainTop=hasHugeGap?2:20;
+
   const probs=a.p.map((p,i)=>`<div class="prob"><small>設定${i+1}</small><b>${p.toFixed(1)}%</b></div>`).join('');
+
   const progressBlock=playMode==='progress'?`
     <div class="card">
       <div class="section-title">経過推測モード</div>
@@ -300,12 +343,15 @@ function render(){
   <div class="card">
     <div class="section-title">特賞履歴 <span style="font-size:12px;color:var(--muted)">ツブ表示・直近20回 / 左が新しい</span></div>
     <div class="grainWrap">
-      <div class="grainChart" style="width:${Math.max(1,viewHits.length)*58}px">
-        <div class="chainLane">${chainBands}</div>
+      <div class="grainChart" style="width:${Math.max(1,displayItems.length)*58}px">
+        <div class="chainLane" style="top:${chainTop}px">${chainBands}</div>
         ${grainCols}
       </div>
     </div>
-    <div class="note" style="margin-top:8px">ツブは100Gごとに1個。100〜300Gは青、400〜500Gは黄、600G以上は緑。ジャグ連は100G以内で帯表示。</div>
+    <div class="note" style="margin-top:8px">
+      ツブは100Gごとに1個。1〜3個目は青、4〜5個目は黄、6個目以降は緑。
+      左端の「終了」は当たりまで届かなかった最終G数で、最上段のみ赤表示。ジャグ連は100G以内で帯表示。
+    </div>
   </div>
   <div class="card alpha ${document.getElementById('alphaToggle').checked?'show':''}" id="alphaBox">
     <div class="alpha-head"><div><div class="k">αモデル ヒント</div><div class="rank">${rankOf(a.p4)}</div></div><div style="text-align:right"><div class="k">P4+</div><div class="p4">${a.p4.toFixed(1)}%</div></div></div>

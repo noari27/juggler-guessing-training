@@ -101,7 +101,11 @@ svg{width:100%;height:100%;display:block}.axis{stroke:#758092;stroke-width:1;str
       <option value="1">設定1</option><option value="2">設定2</option><option value="3">設定3</option>
       <option value="4">設定4</option><option value="5">設定5</option><option value="6">設定6</option>
     </select></div>
-    <div><label>ジャグ連</label><input value="100G以内（固定）" disabled></div>
+    <div><label>開始G</label><select id="startGames">
+      <option value="1000" selected>1000G</option><option value="2000">2000G</option><option value="3000">3000G</option>
+      <option value="4000">4000G</option><option value="5000">5000G</option><option value="6000">6000G</option>
+      <option value="7000">7000G</option><option value="8000">8000G</option>
+    </select></div>
   </div>
 
   <div class="modeTabs">
@@ -123,7 +127,7 @@ svg{width:100%;height:100%;display:block}.axis{stroke:#758092;stroke-width:1;str
 <div class="card note">
   <b>αモデル：</b>設定1〜6を同率事前確率として、総G・BB・REGから各設定の事後確率を計算します。
   P4+は設定4・5・6の合計確率です。ランクは D &lt;40%、C− 40〜44.9%、C+ 45〜49.9%、B 50〜59.9%、B+ 60〜69.9%、A 70%以上。
-  ジャグ連は100G以内で固定。推移グラフは簡易差枚で、通常時の投入とBB/REGの獲得枚数を近似して描画しています。
+  開始Gは1000G〜8000Gを1000G刻みで選択できます。ジャグ連判定は100G以内で固定。推移グラフは簡易差枚で、通常時の投入とBB/REGの獲得枚数を近似して描画しています。
 </div>
 </div>
 
@@ -224,14 +228,19 @@ function graphSVG(pts,target){
 }
 function newQuestion(){
   const machine=document.getElementById('machine').value, target=+document.getElementById('games').value;
+  const start=+document.getElementById('startGames').value;
+  if(start>target){
+    alert('開始Gは最終ゲーム数以下にしてください。');
+    return;
+  }
   const ss=document.getElementById('sourceSetting').value, setting=ss==='random'?1+Math.floor(Math.random()*6):+ss;
-  current=simulate(machine,setting,target); selectedGuess=null; guessLog=[];
-  progressG=playMode==='progress'?Math.min(1000,target):target;
+  current=simulate(machine,setting,target); current.start=start; selectedGuess=null; guessLog=[];
+  progressG=playMode==='progress'?Math.min(start,target):target;
   render();
 }
 function resetGuess(){
   selectedGuess=null; guessLog=[];
-  if(current){progressG=playMode==='progress'?Math.min(1000,current.target):current.target;render()}
+  if(current){progressG=playMode==='progress'?Math.min(current.start||1000,current.target):current.target;render()}
 }
 function chooseGuess(n){selectedGuess=n;document.querySelectorAll('.guess button').forEach(b=>b.classList.toggle('sel',+b.dataset.n===n));}
 function saveProgressGuess(){
@@ -321,7 +330,7 @@ function render(){
   const progressBlock=playMode==='progress'?`
     <div class="card">
       <div class="section-title">経過推測モード</div>
-      <div class="note">${snap.target.toLocaleString()}G 時点の情報だけを表示しています。1000Gごとに予想を記録し、次の区間へ進みます。</div>
+      <div class="note">${snap.target.toLocaleString()}G 時点の情報だけを表示しています。開始Gから1000Gごとに予想を記録し、次の区間へ進みます。</div>
       <div class="progressTrack" style="margin:10px 0 8px"><div class="progressFill" style="width:${snap.target/current.target*100}%"></div></div>
       <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--muted)"><span>${snap.target}G</span><span>最終 ${current.target}G</span></div>
       ${guessLog.length?`<div class="timeline" style="margin-top:12px">${guessLog.sort((a,b)=>a.g-b.g).map(x=>`<div class="step"><div class="g">${x.g}G</div><div class="guessv">設定${x.guess}</div></div>`).join('')}</div>`:''}

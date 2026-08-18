@@ -43,8 +43,8 @@ svg{width:100%;height:100%;display:block}.axis{stroke:#758092;stroke-width:1;str
 .rank{font-size:32px;font-weight:950}.p4{font-size:24px;font-weight:900}
 .bar{height:11px;border-radius:99px;background:#252d38;overflow:hidden;margin:10px 0}.bar>div{height:100%;background:linear-gradient(90deg,#4f8cff,#54e38e);width:0}
 .probs{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}@media(min-width:700px){.probs{grid-template-columns:repeat(6,1fr)}}
-.prob{background:#11161e;border:1px solid var(--line);border-radius:11px;padding:9px;text-align:center}.prob b{display:block;font-size:17px}.prob small{color:var(--muted)}
-.guess{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px}.guess button{min-width:54px;flex:1;background:#222a35;color:white;border:1px solid var(--line)}
+.prob{background:#11161e;border:1px solid var(--line);border-radius:10px;padding:7px 5px;text-align:center}.prob b{display:block;font-size:13px;line-height:1.15}.prob small{color:var(--muted);font-size:10px}
+.guess{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}.guess button{width:100%;min-width:0;background:#222a35;color:white;border:1px solid var(--line);padding:13px 6px}
 .guess button.sel{background:var(--blue);border-color:#76a2ff}
 .reveal{display:none;margin-top:12px;padding:14px;border-radius:14px;background:#11161e;border:1px solid var(--line)}.reveal.show{display:block}
 .correct{color:var(--green)}.wrong{color:#ff7f75}.empty{color:var(--muted);text-align:center;padding:18px}
@@ -53,6 +53,20 @@ svg{width:100%;height:100%;display:block}.axis{stroke:#758092;stroke-width:1;str
 .progressTrack{height:10px;border-radius:999px;background:#252d38;overflow:hidden}.progressFill{height:100%;background:var(--blue)}
 .timeline{display:flex;gap:8px;overflow-x:auto;padding-bottom:3px}.step{min-width:94px;background:#11161e;border:1px solid var(--line);border-radius:12px;padding:10px;text-align:center}.step .g{font-size:12px;color:var(--muted)}.step .guessv{font-weight:900;margin-top:4px}
 .modeTabs{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}.modeTabs button{background:#222a35;color:#fff;border:1px solid var(--line)}.modeTabs button.active{background:var(--blue)}
+
+.grainWrap{overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:6px}
+.grainChart{display:flex;gap:4px;align-items:flex-end;min-width:max-content;padding:28px 4px 0;position:relative}
+.grainCol{width:54px;flex:0 0 54px;text-align:center;position:relative}
+.grainStack{height:210px;display:flex;flex-direction:column-reverse;justify-content:flex-start;gap:2px;align-items:stretch}
+.grainBlock{height:18px;border-radius:2px}
+.grainBlue{background:#4266e8}.grainYellow{background:#fff44f}.grainGreen{background:#69ef45}
+.grainMeta{margin-top:5px;font-size:11px;line-height:1.2;color:var(--muted)}
+.grainType{font-size:11px;font-weight:900;margin-top:3px;padding:4px 2px;border-radius:4px}
+.grainType.bb{background:var(--red);color:white}.grainType.reg{background:#456cf0;color:white}
+.chainLane{position:absolute;left:4px;right:4px;top:2px;height:22px;pointer-events:none}
+.chainBand{position:absolute;height:18px;border-radius:5px;background:rgba(80,184,216,.7);color:white;font-size:11px;font-weight:900;line-height:18px;text-align:center;white-space:nowrap;overflow:hidden}
+.rateLine{font-size:11px;color:var(--muted);margin-top:2px}
+
 </style>
 </head>
 <body>
@@ -218,8 +232,48 @@ function showFinalReveal(){
 function render(){
   const snap=snapshotAt(current,playMode==='progress'?progressG:current.target);
   const a=snap.alpha,total=snap.bb+snap.reg,comb=total?snap.target/total:0;
-  const hits=snap.hits.slice(-20).map(h=>`<div class="hit ${h.type.toLowerCase()}"><div class="n">${h.gap}G</div><div class="t">${h.type}</div></div>`).join('') || '<div class="empty">当選なし</div>';
-  const chains=calcChains(snap.hits), chainHtml=chains.length?chains.map(n=>`<span>${n}連</span>`).join(''):'<span>連チャン表示なし</span>';
+  const recentHits=snap.hits.slice(-20);
+  const viewHits=[...recentHits].reverse(); // 左が新しい・右が古い
+  const grainCols=viewHits.map((h)=>{
+    const blocks=Math.max(1,Math.ceil(h.gap/100));
+    let cls='grainBlue';
+    if(h.gap>=600) cls='grainGreen';
+    else if(h.gap>=400) cls='grainYellow';
+    const stack=Array.from({length:blocks},()=>`<div class="grainBlock ${cls}"></div>`).join('');
+    return `<div class="grainCol">
+      <div class="grainStack">${stack}</div>
+      <div class="grainMeta">${h.gap}G</div>
+      <div class="grainType ${h.type.toLowerCase()}">${h.type}</div>
+    </div>`;
+  }).join('') || '<div class="empty">当選なし</div>';
+
+  // 連チャン帯：元の時系列で100G以内が続く区間を抽出し、表示中20件へ変換
+  const chainRanges=[];
+  let start=null;
+  for(let i=0;i<snap.hits.length;i++){
+    const h=snap.hits[i];
+    if(h.gap<=100){
+      if(start===null) start=Math.max(0,i-1);
+    }else{
+      if(start!==null && i-start>=2) chainRanges.push([start,i-1]);
+      start=null;
+    }
+  }
+  if(start!==null && snap.hits.length-start>=2) chainRanges.push([start,snap.hits.length-1]);
+
+  const globalStart=snap.hits.length-recentHits.length;
+  const visibleBands=[];
+  for(const [s,e] of chainRanges){
+    const vs=Math.max(s,globalStart), ve=Math.min(e,snap.hits.length-1);
+    if(vs<=ve && ve-vs+1>=2){
+      // reversed display: newest at left
+      const leftIndex=(snap.hits.length-1)-ve;
+      const rightIndex=(snap.hits.length-1)-vs;
+      const count=rightIndex-leftIndex+1;
+      visibleBands.push({left:leftIndex*58,width:count*58-4,count});
+    }
+  }
+  const chainBands=visibleBands.map(b=>`<div class="chainBand" style="left:${b.left}px;width:${b.width}px">${b.count}連</div>`).join('');
   const probs=a.p.map((p,i)=>`<div class="prob"><small>設定${i+1}</small><b>${p.toFixed(1)}%</b></div>`).join('');
   const progressBlock=playMode==='progress'?`
     <div class="card">
@@ -236,12 +290,23 @@ function render(){
     <div class="hero">
       <div class="stat"><div class="k">機種</div><div class="v" style="font-size:14px">${specs[current.machine].name}</div></div>
       <div class="stat"><div class="k">表示G</div><div class="v">${snap.target}</div></div>
-      <div class="stat"><div class="k">BB / REG</div><div class="v">${snap.bb} / ${snap.reg}</div></div>
+      <div class="stat"><div class="k">BB / REG</div><div class="v">${snap.bb} / ${snap.reg}</div>
+        <div class="rateLine">BB ${snap.bb?`1/${(snap.target/snap.bb).toFixed(1)}`:'—'}　REG ${snap.reg?`1/${(snap.target/snap.reg).toFixed(1)}`:'—'}</div>
+      </div>
       <div class="stat"><div class="k">合算</div><div class="v">${total?'1/'+comb.toFixed(1):'—'}</div></div>
     </div>
   </div>
   <div class="card"><div class="section-title">推移グラフ <span style="font-size:12px;color:var(--muted)">簡易差枚 ${snap.diff>=0?'+':''}${snap.diff}枚</span></div><div class="graph">${graphSVG(snap.pts,snap.target)}</div></div>
-  <div class="card"><div class="section-title">特賞履歴 <span style="font-size:12px;color:var(--muted)">直近20回</span></div><div class="chain">${chainHtml}</div><div class="history">${hits}</div></div>
+  <div class="card">
+    <div class="section-title">特賞履歴 <span style="font-size:12px;color:var(--muted)">ツブ表示・直近20回 / 左が新しい</span></div>
+    <div class="grainWrap">
+      <div class="grainChart" style="width:${Math.max(1,viewHits.length)*58}px">
+        <div class="chainLane">${chainBands}</div>
+        ${grainCols}
+      </div>
+    </div>
+    <div class="note" style="margin-top:8px">ツブは100Gごとに1個。100〜300Gは青、400〜500Gは黄、600G以上は緑。ジャグ連は100G以内で帯表示。</div>
+  </div>
   <div class="card alpha ${document.getElementById('alphaToggle').checked?'show':''}" id="alphaBox">
     <div class="alpha-head"><div><div class="k">αモデル ヒント</div><div class="rank">${rankOf(a.p4)}</div></div><div style="text-align:right"><div class="k">P4+</div><div class="p4">${a.p4.toFixed(1)}%</div></div></div>
     <div class="bar"><div style="width:${Math.min(100,a.p4)}%"></div></div><div class="probs">${probs}</div>

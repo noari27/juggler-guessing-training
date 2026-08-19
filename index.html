@@ -175,6 +175,11 @@ function practiceNextHitResult(){
   if(practice.g>=current.target)practice.state='finished';
   render();scrollToPractice()
 }
+function practiceToEndResult(){
+  practice.g=current.target;
+  practice.state='finished';
+  render();scrollToPractice()
+}
 function hypotheticalAfterExit(g){
   if(practice.exitG===null)return null;
   let pos=practice.exitG,wallet=practice.exitWallet,extraInvested=0;
@@ -190,6 +195,19 @@ function hypotheticalAfterExit(g){
   const exitYen=Math.round(practice.exitWallet*20-practice.exitInvested);
   const totalYen=Math.round(wallet*20-(practice.exitInvested+extraInvested));
   return{wallet,extraInvested,totalYen,deltaYen:totalYen-exitYen};
+}
+function postExitExtrema(toG){
+  if(practice.exitG===null)return null;
+  const start=practice.exitG,to=Math.max(start,Math.min(toG,current.target));
+  let maxYen=-Infinity,minYen=Infinity,maxG=start,minG=start;
+  for(let g=start;g<=to;g++){
+    const h=hypotheticalAfterExit(g);
+    if(!h)continue;
+    if(h.totalYen>maxYen){maxYen=h.totalYen;maxG=g}
+    if(h.totalYen<minYen){minYen=h.totalYen;minG=g}
+  }
+  if(!Number.isFinite(maxYen)||!Number.isFinite(minYen))return null;
+  return{maxYen,minYen,maxG,minG};
 }
 function outcomeEvaluation(){
   if(practice.state!=='finished')return'';
@@ -221,7 +239,8 @@ let practiceTop='',practiceAction='';if(playMode==='practice'){
   const status=practice.state==='entry'?'着席判断':practice.state==='firstCash'?'着席済み・初回投資判断':practice.state==='needCash'?'持ち玉なし・追加投資判断':practice.state==='bonusDecision'?'ボーナス当選・継続判断':practice.state==='checkpoint'?'100Gごとの継続判断':practice.state==='finalDecision'?'最終G到達':practice.state==='afterExit'?`${practice.exitG}Gで撤退済み`:practice.state==='afterSkip'?'見送り済み':'結果確認完了';
   const tag=['afterExit','afterSkip','finished'].includes(practice.state)?'撤退後 答え合わせ':'実戦中 当選後 / 100G判断';
   const postExitHypo=practice.exitG!==null&&practice.g>=practice.exitG?hypotheticalAfterExit(practice.g):null;
-  const exitCompare=postExitHypo&&practice.g>practice.exitG?`<div class="finalEval" style="margin-top:10px"><div class="k">撤退後の仮想収支差（${practice.g}G時点）</div><div class="mv" style="font-size:22px;font-weight:950;margin-top:3px">${fmtSign(postExitHypo.deltaYen)}円</div><div class="note" style="margin-top:4px">撤退時の持ち玉を引き継ぎ、足りなくなった場合は1000円＝50枚を追加投資したものとして計算。仮想追加投資 ${postExitHypo.extraInvested.toLocaleString()}円 / 仮想持ち玉 ${fmtCoins(postExitHypo.wallet)}枚 / 仮想総収支 ${fmtSign(postExitHypo.totalYen)}円</div></div>`:'';
+  const ext=practice.exitG!==null&&practice.g>=practice.exitG?postExitExtrema(practice.g):null;
+  const exitCompare=postExitHypo&&practice.g>practice.exitG?`<div class="finalEval" style="margin-top:10px"><div class="k">撤退後の仮想収支差（${practice.g}G時点）</div><div class="mv" style="font-size:22px;font-weight:950;margin-top:3px">${fmtSign(postExitHypo.deltaYen)}円</div><div class="note" style="margin-top:4px">撤退時の持ち玉を引き継ぎ、足りなくなった場合は1000円＝50枚を追加投資したものとして計算。仮想追加投資 ${postExitHypo.extraInvested.toLocaleString()}円 / 仮想持ち玉 ${fmtCoins(postExitHypo.wallet)}枚 / 仮想総収支 ${fmtSign(postExitHypo.totalYen)}円</div>${ext?`<div class="money" style="margin-top:10px"><div><div class="k">ここまでの最大＋収支</div><div class="mv" style="color:var(--green)">${fmtSign(ext.maxYen)}円</div><div class="note">${ext.maxG}G時点</div></div><div><div class="k">ここまでの最大−収支</div><div class="mv" style="color:#ff7f75">${fmtSign(ext.minYen)}円</div><div class="note">${ext.minG}G時点</div></div></div>`:''}</div>`:'';
   const practiceShownG=practice.state==='afterExit'||practice.state==='finished'?practice.g:(frozen?practice.exitG:practice.g);
   const practiceCurrentHit=current.hits.find(h=>h.g===practiceShownG);
   let practiceBonusBadge='';
@@ -261,7 +280,7 @@ let practiceTop='',practiceAction='';if(playMode==='practice'){
   }
 }
 const guessCard=playMode==='practice'?'':isFixedQuestion()?`<div class="card"><div class="section-title">固定設定モード</div><div class="note">出題設定を固定しているため、設定回答欄は表示しません。</div><div class="row">${playMode==='progress'?`<button class="primary" onclick="saveProgressGuess()">${snap.target<current.target?'次の1000Gへ':'最終結果を見る'}</button>`:`<button class="primary" onclick="reveal()">結果を見る</button><button class="secondary" onclick="newQuestion()">次の問題</button>`}</div><div class="reveal" id="reveal"></div></div>`:`<div class="card"><div class="section-title">${playMode==='progress'?`${snap.target}G時点の設定予想`:'あなたの設定予想'}</div><div class="guess">${[1,2,3,4,5,6].map(n=>`<button data-n="${n}" onclick="chooseGuess(${n})">設定${n}</button>`).join('')}</div><div class="row">${playMode==='progress'?`<button class="primary" onclick="saveProgressGuess()">${snap.target<current.target?'予想を記録して次へ':'最終予想を記録して答え合わせ'}</button>`:`<button class="primary" onclick="reveal()">答え合わせ</button><button class="secondary" onclick="newQuestion()">次の問題</button>`}</div><div class="reveal" id="reveal"></div></div>`;
-const postExitNext=playMode==='practice'&&practice.state==='afterExit'?`<div class="card" style="padding:12px 14px"><div class="note" style="margin-bottom:9px">${practice.exitG}Gで撤退済み。設定予想なしで、500G先または次のボーナス当選まで進めて答え合わせできます。</div><div class="row"><button class="primary" onclick="practiceNextResult()">次の500Gへ</button><button class="secondary" onclick="practiceNextHitResult()">次の当たりまで</button></div></div>`:'';
+const postExitNext=playMode==='practice'&&practice.state==='afterExit'?`<div class="card" style="padding:12px 14px"><div class="note" style="margin-bottom:9px">${practice.exitG}Gで撤退済み。設定予想なしで、500G先・次のボーナス当選・最終Gまで進めて答え合わせできます。</div><div class="row"><button class="primary" onclick="practiceNextResult()">次の500Gへ</button><button class="secondary" onclick="practiceNextHitResult()">次の当たりまで</button><button class="secondary" onclick="practiceToEndResult()">最終Gまで</button></div></div>`:'';
 document.getElementById('gameArea').innerHTML=`${progressBlock}${practiceTop}<div class="card scrollAnchor" id="topStatsCard"><div class="hero"><div class="stat"><div class="k">機種</div><div class="v" style="font-size:14px">${specs[current.machine].name}</div></div><div class="stat"><div class="k">表示G</div><div class="v">${snap.target}</div></div><div class="stat"><div class="k">BB / REG</div><div class="v">${snap.bb} / ${snap.reg}</div><div class="rateLine">BB ${snap.bb?`1/${(snap.target/snap.bb).toFixed(1)}`:'—'}　REG ${snap.reg?`1/${(snap.target/snap.reg).toFixed(1)}`:'—'}</div></div><div class="stat"><div class="k">合算</div><div class="v">${total?'1/'+comb.toFixed(1):'—'}</div></div></div></div>${postExitNext}<div class="card"><div class="section-title">推移グラフ <span style="font-size:12px;color:var(--muted)">簡易差枚 ${snap.diff>=0?'+':''}${snap.diff}枚</span></div><div class="graph">${graphSVG(snap.pts,snap.target)}</div></div><div class="card"><div class="section-title">特賞履歴 <span style="font-size:12px;color:var(--muted)">ツブ表示・直近20回 / 左が新しい</span></div><div class="grainWrap"><div class="grainChart" style="width:${Math.max(1,displayItems.length)*58}px"><div class="chainLane" style="top:${chainTop}px">${chainBands}</div>${grainCols}</div></div><div class="note" style="margin-top:8px">ツブは100Gごとに1個。1〜3個目は青、4〜5個目は黄、6個目以降は緑。左端の「終了」は当たりまで届かなかった最終G数で、最上段のみ赤表示。ジャグ連は100G以内で帯表示。</div></div><div class="card alpha ${document.getElementById('alphaToggle').checked?'show':''}" id="alphaBox"><div class="alpha-head"><div><div class="k">αモデル ヒント</div><div class="rank">${rankOf(a.p4)}</div></div><div style="text-align:right"><div class="k">P4+</div><div class="p4">${a.p4.toFixed(1)}%</div></div></div><div class="bar"><div style="width:${Math.min(100,a.p4)}%"></div></div><div class="probs">${probs}</div>${playMode==='practice'?rankGuideHTML(current.machine,snap.target,snap.bb,snap.reg):''}</div>${practiceAction}${guessCard}`}
 document.getElementById('alphaToggle').addEventListener('change',()=>{const b=document.getElementById('alphaBox');if(b)b.classList.toggle('show',document.getElementById('alphaToggle').checked)});
 </script>
